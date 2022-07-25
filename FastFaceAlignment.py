@@ -1,8 +1,16 @@
+import torch
+import torch.nn as nn
+import torch.nn.functional as F
+from fast_face_alignment.models.facealignment.FastFAN import ConvBlock, HourGlass
+from fast_face_alignment.utils.utils import crop
+from utils.utils import get_preds_fromhm
+import numpy as np
+
 class FastFAN(nn.Module):
 
 	def __init__(self, num_modules = 1,depth = 2,imp = 0,device = 0):
 		super(FastFAN, self).__init__()
-		self.batch_size =1
+		self.batch_size = 1
 
 		self.imp=imp
 		self.device = device
@@ -102,3 +110,25 @@ class FastFAN(nn.Module):
 				previous = previous + ll_ + tmp_out_
 
 		return outputs
+		
+def generateFastFan(modelPath,deviceID):
+	torch.cuda.set_device(deviceID)
+	model = FastFAN(num_modules=1,depth=2, imp=42,device = deviceID)
+	checkpoint = torch.load(
+		modelPath,
+		map_location=lambda storage, loc: storage.cuda(
+			torch.cuda.current_device()
+		)
+	)
+	model_dict = model.state_dict()
+	checkpoint_dict = checkpoint['state_dict']
+	matched_dict = {}
+	for k, v in checkpoint_dict.items():
+		if k in model_dict and v.size() == model_dict[k].size():
+			matched_dict[k] = v
+
+	model_dict.update(matched_dict)
+	model.load_state_dict(model_dict, strict=False)
+	model = model.cuda()
+
+	return model

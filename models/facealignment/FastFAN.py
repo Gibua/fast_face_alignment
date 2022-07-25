@@ -1,9 +1,6 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from utils.utils import crop
-from utils.utils import get_preds_fromhm
-import numpy as np
 
 def conv3x3(in_planes, out_planes, strd=1, padding=1, bias=False):
     "3x3 convolution with padding"
@@ -98,26 +95,3 @@ class HourGlass(nn.Module):
 
     def forward(self, x):
         return self._forward(self.depth, x)
-        
-
-def generateFastFan(modelPath,deviceID):
-    torch.cuda.set_device(deviceID)
-    model = FastFAN(num_modules=1,depth=2, imp=42,device = deviceID)
-    checkpoint = torch.load(
-        modelPath,
-        map_location=lambda storage, loc: storage.cuda(
-            torch.cuda.current_device()
-        )
-    )
-    model_dict = model.state_dict()
-    checkpoint_dict = checkpoint['state_dict']
-    matched_dict = {}
-    for k, v in checkpoint_dict.items():
-        if k in model_dict and v.size() == model_dict[k].size():
-            matched_dict[k] = v
-
-    model_dict.update(matched_dict)
-    model.load_state_dict(model_dict, strict=False)
-    model = model.cuda()
-
-    return model
